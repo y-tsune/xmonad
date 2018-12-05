@@ -113,12 +113,18 @@ usage = do
 --
 buildLaunch ::  IO ()
 buildLaunch = do
-    recompile False
-    dir  <- getXMonadDataDir
-    args <- getArgs
     whoami <- getProgName
     let compiledConfig = "xmonad-"++arch++"-"++os
-    unless (whoami == compiledConfig) $
+    unless (whoami == compiledConfig) $ do
+      trace $ concat
+        [ "XMonad is recompiling and replacing itself another XMonad process because the current process is called "
+        , show whoami
+        , " but the compiled configuration should be called "
+        , show compiledConfig
+        ]
+      recompile False
+      dir  <- getXMonadDataDir
+      args <- getArgs
       executeFile (dir </> compiledConfig) False args Nothing
 
 sendRestart :: IO ()
@@ -197,7 +203,6 @@ launch initxmc = do
     hSetBuffering stdout NoBuffering
 
     let layout = layoutHook xmc
-        lreads = readsLayout layout
         initialWinset = let padToLen n xs = take (max n (length xs)) $ xs ++ repeat ""
             in new layout (padToLen (length xinesc) (workspaces xmc)) $ map SD xinesc
 
@@ -473,7 +478,7 @@ grabKeys = do
          forM_ (keysymToKeycodes sym) $ \kc ->
               mapM_ (grab kc . (mask .|.)) =<< extraModifiers
 
--- | XXX comment me
+-- | Grab the buttons
 grabButtons :: X ()
 grabButtons = do
     XConf { display = dpy, theRoot = rootw } <- ask
